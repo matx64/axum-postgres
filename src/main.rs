@@ -1,18 +1,20 @@
-use std::error::Error;
-
 use axum::{routing::get, Router};
 use dotenv::dotenv;
-use sqlx::Connection;
+use sqlx::postgres::PgPoolOptions;
+use std::error::Error;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
 
-    let db_connection_str = std::env::var("DATABASE_URL").expect("Missing DB url.");
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&connection_str())
+        .await?;
 
-    let _conn = sqlx::postgres::PgConnection::connect(&db_connection_str).await?;
+    sqlx::migrate!("./migrations").run(&pool).await?;
 
-    let app = Router::new().route("/home", get(home));
+    let app = Router::new().route("/status", get(status));
 
     println!("🚀 Server started successfully!");
     axum::Server::bind(&"127.0.0.1:1337".parse().unwrap())
@@ -22,6 +24,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-async fn home() -> &'static str {
-    "Home"
+fn connection_str() -> String {
+    let user = std::env::var("DB_USER").expect("Missing DB_USER");
+    let password = std::env::var("DB_PASSWORD").expect("Missing DB_PASSWORD");
+    let host = std::env::var("DB_HOST").expect("Missing DB_HOST");
+    let port = std::env::var("DB_PORT").expect("Missing DB_PORT");
+    let name = std::env::var("DB_NAME").expect("Missing DB_NAME");
+
+    format!(
+        "postgres://{}:{}@{}:{}/{}?sslmode=disable",
+        user, password, host, port, name
+    )
+}
+
+async fn status() -> &'static str {
+    "OK"
 }
