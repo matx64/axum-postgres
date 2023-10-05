@@ -7,10 +7,12 @@ edition = "2021"
 
 [dependencies]
 axum = "0.6.20"
+chrono = "0.4.31"
 dotenv = "0.15.0"
 sqlx = { version = "0.7.2", features = [
     "runtime-tokio-rustls",
     "macros",
     "postgres",
+    "chrono"
 ] }
 tokio = { version = "1.32.0", features = ["full"] }
