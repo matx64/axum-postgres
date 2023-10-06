@@ -3,19 +3,13 @@ pub mod user;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::error::Error;
 
-pub struct Db {
-    pub pool: Pool<Postgres>,
-}
+pub async fn db_pool() -> Result<Pool<Postgres>, Box<dyn Error>> {
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&connection_str())
+        .await?;
 
-impl Db {
-    pub async fn new() -> Result<Self, Box<dyn Error>> {
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&connection_str())
-            .await?;
-
-        Ok(Self { pool })
-    }
+    Ok(pool)
 }
 
 fn connection_str() -> String {
