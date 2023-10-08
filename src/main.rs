@@ -17,6 +17,9 @@ pub struct AppState {
 async fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
 
+    let port = std::env::var("SERVER_PORT").expect("Missing SERVER_PORT");
+    let addr = format!("127.0.0.1:{}", port);
+
     let pool = db::db_pool().await?;
 
     sqlx::migrate!("./migrations").run(&pool).await?;
@@ -28,7 +31,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .nest("/users", user_routes(app_state.clone()));
 
     println!("🚀 Server started successfully!");
-    axum::Server::bind(&"127.0.0.1:1337".parse()?)
+    axum::Server::bind(&addr.parse()?)
         .serve(app.into_make_service())
         .await?;
 
