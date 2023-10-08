@@ -24,16 +24,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app_state = AppState { pool };
 
     let app = Router::new()
-        .route("/status", get(status))
+        .route("/status", get(controllers::status))
         .nest("/users", user_routes(app_state.clone()));
 
     println!("🚀 Server started successfully!");
     axum::Server::bind(&"127.0.0.1:1337".parse()?)
         .serve(app.into_make_service())
         .await?;
-    Ok(())
-}
 
-async fn status() -> &'static str {
-    "OK"
+    Ok(())
 }

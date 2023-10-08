@@ -1,5 +1,9 @@
-use crate::{db::user::fetch_all, models::user::User, AppState};
-use axum::{extract::State, routing::get, routing::post, Json, Router};
+use crate::{
+    db::user::{create, fetch_all},
+    models::user::{User, UserCreate},
+    AppState,
+};
+use axum::{extract::State, http::StatusCode, routing::get, routing::post, Json, Router};
 
 pub fn user_routes(state: AppState) -> Router {
     Router::new()
@@ -8,13 +12,26 @@ pub fn user_routes(state: AppState) -> Router {
         .with_state(state)
 }
 
-pub async fn get_users(state: State<AppState>) -> Result<Json<Vec<User>>, axum::http::StatusCode> {
+pub async fn get_users(
+    state: State<AppState>,
+) -> Result<(StatusCode, Json<Vec<User>>), StatusCode> {
     match fetch_all(&state.pool).await {
-        Ok(users) => Ok(Json(users)),
-        Err(_) => Err(axum::http::StatusCode::INTERNAL_SERVER_ERROR),
+        Ok(users) => Ok((StatusCode::OK, Json(users))),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
-pub async fn create_user() -> &'static str {
-    "Users"
+pub async fn create_user(
+    state: State<AppState>,
+    Json(payload): Json<UserCreate>,
+) -> Result<(StatusCode, Json<User>), StatusCode> {
+    let user = User::new(payload.email, payload.password, payload.name);
+
+    match create(&state.pool, &user).await {
+        Ok(_) => Ok((StatusCode::CREATED, Json(user))),
+        Err(err) => {
+            println!("{:?}", err);
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    }
 }
