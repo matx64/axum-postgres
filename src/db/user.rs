@@ -1,15 +1,14 @@
 use crate::models::user::{User, UserCreate};
 use sqlx::{postgres::PgQueryResult, Pool, Postgres};
-use std::error::Error;
 
-pub async fn fetch_all(pool: &Pool<Postgres>) -> Result<Vec<User>, Box<dyn Error>> {
+pub async fn fetch_all(pool: &Pool<Postgres>) -> Result<Vec<User>, sqlx::Error> {
     let result = sqlx::query_as::<_, User>("SELECT * FROM users")
         .fetch_all(pool)
         .await?;
     Ok(result)
 }
 
-pub async fn create(pool: &Pool<Postgres>, user: &User) -> Result<(), Box<dyn Error>> {
+pub async fn create(pool: &Pool<Postgres>, user: &User) -> Result<(), sqlx::Error> {
     sqlx::query("INSERT INTO users (id, email, password, name, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)")
         .bind(&user.id)
         .bind(&user.email)

@@ -6,7 +6,6 @@ use axum::{routing::get, Router};
 use controllers::user::user_routes;
 use dotenv::dotenv;
 use sqlx::{Pool, Postgres};
-use std::error::Error;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -14,7 +13,7 @@ pub struct AppState {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
 
     let port = std::env::var("SERVER_PORT").unwrap_or("1337".to_string());

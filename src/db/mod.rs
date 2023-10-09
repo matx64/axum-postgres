@@ -1,9 +1,8 @@
 pub mod user;
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
-use std::error::Error;
 
-pub async fn db_pool() -> Result<Pool<Postgres>, Box<dyn Error>> {
+pub async fn db_pool() -> Result<Pool<Postgres>, Box<dyn std::error::Error>> {
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&connection_str())
