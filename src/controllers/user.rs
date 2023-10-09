@@ -1,22 +1,29 @@
 use crate::{
-    db::user::{create, fetch_all},
+    db::user::{create, delete, fetch_all, update},
     models::user::{User, UserCreate},
     AppState,
 };
-use axum::{extract::State, http::StatusCode, routing::get, routing::post, Json, Router};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    routing::get,
+    routing::post,
+    routing::put,
+    Json, Router,
+};
 
 pub fn user_routes(state: AppState) -> Router {
     Router::new()
         .route("/", get(get_users))
         .route("/", post(create_user))
+        .route("/:id", put(update_user))
+        .route("/:id", axum::routing::delete(delete_user))
         .with_state(state)
 }
 
-pub async fn get_users(
-    state: State<AppState>,
-) -> Result<(StatusCode, Json<Vec<User>>), StatusCode> {
+pub async fn get_users(state: State<AppState>) -> Result<Json<Vec<User>>, StatusCode> {
     match fetch_all(&state.pool).await {
-        Ok(users) => Ok((StatusCode::OK, Json(users))),
+        Ok(users) => Ok(Json(users)),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -32,6 +39,45 @@ pub async fn create_user(
         Err(err) => {
             println!("{:?}", err);
             return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    }
+}
+
+pub async fn update_user(
+    state: State<AppState>,
+    Path(id): Path<uuid::Uuid>,
+    Json(payload): Json<UserCreate>,
+) -> StatusCode {
+    let result =
+        update(&state.pool, &id, &payload)
+            .await
+            .map(|result| match result.rows_affected() {
+                0 => StatusCode::NOT_FOUND,
+                _ => StatusCode::OK,
+            });
+
+    match result {
+        Ok(status) => status,
+        Err(err) => {
+            println!("{:?}", err);
+            return StatusCode::INTERNAL_SERVER_ERROR;
+        }
+    }
+}
+
+pub async fn delete_user(state: State<AppState>, Path(id): Path<uuid::Uuid>) -> StatusCode {
+    let result = delete(&state.pool, &id)
+        .await
+        .map(|result| match result.rows_affected() {
+            0 => StatusCode::NOT_FOUND,
+            _ => StatusCode::OK,
+        });
+
+    match result {
+        Ok(status) => status,
+        Err(err) => {
+            println!("{:?}", err);
+            return StatusCode::INTERNAL_SERVER_ERROR;
         }
     }
 }

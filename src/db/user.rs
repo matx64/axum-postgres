@@ -1,6 +1,13 @@
-use crate::models::user::User;
-use sqlx::{Pool, Postgres};
+use crate::models::user::{User, UserCreate};
+use sqlx::{postgres::PgQueryResult, Pool, Postgres};
 use std::error::Error;
+
+pub async fn fetch_all(pool: &Pool<Postgres>) -> Result<Vec<User>, Box<dyn Error>> {
+    let result = sqlx::query_as::<_, User>("SELECT * FROM users")
+        .fetch_all(pool)
+        .await?;
+    Ok(result)
+}
 
 pub async fn create(pool: &Pool<Postgres>, user: &User) -> Result<(), Box<dyn Error>> {
     sqlx::query("INSERT INTO users (id, email, password, name, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)")
@@ -15,23 +22,26 @@ pub async fn create(pool: &Pool<Postgres>, user: &User) -> Result<(), Box<dyn Er
     Ok(())
 }
 
-pub async fn update(pool: &Pool<Postgres>, user: &User) -> Result<(), Box<dyn Error>> {
+pub async fn update(
+    pool: &Pool<Postgres>,
+    id: &uuid::Uuid,
+    user: &UserCreate,
+) -> Result<PgQueryResult, sqlx::Error> {
     sqlx::query(
-        "UPDATE user SET email = $1, password = $2, name = $3, updated_at = $4 WHERE id = $5",
+        "UPDATE users SET email = $1, password = $2, name = $3, updated_at = $4 WHERE id = $5",
     )
     .bind(&user.email)
     .bind(&user.password)
     .bind(&user.name)
     .bind(chrono::Utc::now())
-    .bind(&user.id)
+    .bind(&id)
     .execute(pool)
-    .await?;
-    Ok(())
+    .await
 }
 
-pub async fn fetch_all(pool: &Pool<Postgres>) -> Result<Vec<User>, Box<dyn Error>> {
-    let result = sqlx::query_as::<_, User>("SELECT * FROM users")
-        .fetch_all(pool)
-        .await?;
-    Ok(result)
+pub async fn delete(pool: &Pool<Postgres>, id: &uuid::Uuid) -> Result<PgQueryResult, sqlx::Error> {
+    sqlx::query("DELETE FROM users WHERE id = $1")
+        .bind(&id)
+        .execute(pool)
+        .await
 }

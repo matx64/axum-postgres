@@ -17,7 +17,7 @@ pub struct AppState {
 async fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
 
-    let port = std::env::var("SERVER_PORT").expect("Missing SERVER_PORT");
+    let port = std::env::var("SERVER_PORT").unwrap_or("1337".to_string());
     let addr = format!("127.0.0.1:{}", port);
 
     let pool = db::db_pool().await?;
