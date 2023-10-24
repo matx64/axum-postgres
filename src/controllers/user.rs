@@ -1,5 +1,5 @@
 use crate::{
-    db::user::{create, delete, fetch_all, update},
+    db::user::{create, delete, fetch_all, fetch_one_by_id, update},
     models::user::{User, UserCreate},
     AppState,
 };
@@ -14,17 +14,32 @@ use axum::{
 
 pub fn user_routes(state: AppState) -> Router {
     Router::new()
-        .route("/", get(get_users))
+        .route("/", get(get_all_users))
         .route("/", post(create_user))
+        .route("/:id", get(get_user_by_id))
         .route("/:id", put(update_user))
         .route("/:id", axum::routing::delete(delete_user))
         .with_state(state)
 }
 
-pub async fn get_users(state: State<AppState>) -> Result<Json<Vec<User>>, StatusCode> {
+pub async fn get_all_users(state: State<AppState>) -> Result<Json<Vec<User>>, StatusCode> {
     match fetch_all(&state.pool).await {
         Ok(users) => Ok(Json(users)),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn get_user_by_id(
+    state: State<AppState>,
+    Path(id): Path<uuid::Uuid>,
+) -> Result<Json<User>, StatusCode> {
+    match fetch_one_by_id(&state.pool, &id).await {
+        Ok(Some(user)) => Ok(Json(user)),
+        Ok(None) => Err(StatusCode::NOT_FOUND),
+        Err(err) => {
+            println!("{:?}", err);
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
     }
 }
 

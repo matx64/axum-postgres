@@ -8,6 +8,17 @@ pub async fn fetch_all(pool: &Pool<Postgres>) -> Result<Vec<User>, sqlx::Error> 
     Ok(result)
 }
 
+pub async fn fetch_one_by_id(
+    pool: &Pool<Postgres>,
+    id: &uuid::Uuid,
+) -> Result<Option<User>, sqlx::Error> {
+    let result = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
+        .bind(id)
+        .fetch_optional(pool)
+        .await?;
+    Ok(result)
+}
+
 pub async fn create(pool: &Pool<Postgres>, user: &User) -> Result<(), sqlx::Error> {
     sqlx::query("INSERT INTO users (id, email, password, name, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)")
         .bind(&user.id)
