@@ -15,15 +15,15 @@ use uuid::Uuid;
 
 pub fn user_routes(state: AppState) -> Router {
     Router::new()
-        .route("/", post(create_user))
-        .route("/", get(get_users))
-        .route("/:id", get(get_user))
-        .route("/:id", patch(update_user))
-        .route("/:id", delete(delete_user))
+        .route("/", post(create_user_handler))
+        .route("/", get(list_users_handler))
+        .route("/:id", get(get_user_handler))
+        .route("/:id", patch(update_user_handler))
+        .route("/:id", delete(delete_user_handler))
         .with_state(state)
 }
 
-pub async fn create_user(
+pub async fn create_user_handler(
     state: State<AppState>,
     Json(payload): Json<UserCreate>,
 ) -> Result<(StatusCode, Json<User>), StatusCode> {
@@ -33,33 +33,36 @@ pub async fn create_user(
         Ok(_) => Ok((StatusCode::CREATED, Json(user))),
         Err(e) => {
             tracing::error!("{}", e.to_string());
-            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
 }
 
-async fn get_users(state: State<AppState>) -> Result<Json<Vec<User>>, StatusCode> {
+async fn list_users_handler(state: State<AppState>) -> Result<Json<Vec<User>>, StatusCode> {
     match db::user::list(&state.pool).await {
         Ok(users) => Ok(Json(users)),
         Err(e) => {
             tracing::error!("{}", e.to_string());
-            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
 }
 
-async fn get_user(state: State<AppState>, Path(id): Path<Uuid>) -> Result<Json<User>, StatusCode> {
+async fn get_user_handler(
+    state: State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<User>, StatusCode> {
     match db::user::get(&state.pool, &id).await {
         Ok(Some(user)) => Ok(Json(user)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             tracing::error!("{}", e.to_string());
-            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
 }
 
-async fn update_user(
+async fn update_user_handler(
     state: State<AppState>,
     Path(id): Path<Uuid>,
     Json(payload): Json<UserCreate>,
@@ -75,12 +78,12 @@ async fn update_user(
         Ok(status) => status,
         Err(e) => {
             tracing::error!("{}", e.to_string());
-            return StatusCode::INTERNAL_SERVER_ERROR;
+            StatusCode::INTERNAL_SERVER_ERROR
         }
     }
 }
 
-async fn delete_user(state: State<AppState>, Path(id): Path<Uuid>) -> StatusCode {
+async fn delete_user_handler(state: State<AppState>, Path(id): Path<Uuid>) -> StatusCode {
     let result =
         db::user::delete(&state.pool, &id)
             .await
@@ -93,7 +96,7 @@ async fn delete_user(state: State<AppState>, Path(id): Path<Uuid>) -> StatusCode
         Ok(status) => status,
         Err(e) => {
             tracing::error!("{}", e.to_string());
-            return StatusCode::INTERNAL_SERVER_ERROR;
+            StatusCode::INTERNAL_SERVER_ERROR
         }
     }
 }

@@ -1,2 +1,2 @@
 [env]
-RUST_LOG="axum_postgres=debug"
+RUST_LOG = "axum_postgres=debug,tower_http=debug,axum::rejection=trace"

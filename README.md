@@ -14,4 +14,7 @@ docker-compose up -d
 
 # start server
 cargo run
+
+# hot reloading
+cargo-watch -c -q -w . -x "run"
 ```

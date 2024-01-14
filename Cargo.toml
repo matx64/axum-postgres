@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = { version = "0.7.3", features = ["macros"] }
+axum = { version = "0.7.3", features = ["tracing"] }
 chrono = { version = "0.4.31", features = ["serde"] }
 dotenv = "0.15.0"
 serde = { version = "1.0.195", features = ["derive"] }
@@ -17,6 +17,7 @@ sqlx = { version = "0.7.3", features = [
     "uuid",
 ] }
 tokio = { version = "1.35.1", features = ["full"] }
+tower-http = { version = "0.5.0", features = ["trace"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 uuid = { version = "1.6.1", features = ["serde", "v4"] }
