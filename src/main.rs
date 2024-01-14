@@ -1,11 +1,14 @@
+mod config;
 mod controllers;
 mod db;
 mod models;
 
+pub use config::config;
+use db::get_db_pool;
+
 use axum::{routing::get, Router};
-use controllers::user::user_routes;
-use dotenv::dotenv;
 use sqlx::{Pool, Postgres};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -13,26 +16,31 @@ pub struct AppState {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenv().ok();
+async fn main() {
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "axum_postgres=debug".into()),
+        )
+        .with(tracing_subscriber::fmt::layer().without_time())
+        .init();
 
-    let port = std::env::var("SERVER_PORT").unwrap_or("1337".to_string());
-    let addr = format!("127.0.0.1:{}", port);
+    let state = AppState {
+        pool: get_db_pool().await,
+    };
 
-    let pool = db::db_pool().await?;
-
-    sqlx::migrate!("./migrations").run(&pool).await?;
-
-    let app_state = AppState { pool };
+    sqlx::migrate!("./migrations")
+        .run(&state.pool)
+        .await
+        .unwrap();
 
     let app = Router::new()
         .route("/status", get(controllers::status))
-        .nest("/users", user_routes(app_state.clone()));
+        .nest("/users", controllers::user::user_routes(state.clone()));
 
-    println!("🚀 Server started successfully!");
-    axum::Server::bind(&addr.parse()?)
-        .serve(app.into_make_service())
-        .await?;
-
-    Ok(())
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
+        .await
+        .unwrap();
+    tracing::debug!("🚀 Listening on {}", listener.local_addr().unwrap());
+    axum::serve(listener, app).await.unwrap();
 }

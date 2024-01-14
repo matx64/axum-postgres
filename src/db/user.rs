@@ -1,17 +1,30 @@
 use crate::models::user::{User, UserCreate};
-use sqlx::{postgres::PgQueryResult, Pool, Postgres};
 
-pub async fn fetch_all(pool: &Pool<Postgres>) -> Result<Vec<User>, sqlx::Error> {
+use sqlx::postgres::PgQueryResult;
+use sqlx::{Pool, Postgres};
+use uuid::Uuid;
+
+pub async fn create(pool: &Pool<Postgres>, user: &User) -> Result<(), sqlx::Error> {
+    sqlx::query("INSERT INTO users (id, email, password, name, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)")
+        .bind(user.id)
+        .bind(&user.email)
+        .bind(&user.password)
+        .bind(&user.name)
+        .bind(user.created_at)
+        .bind(user.updated_at)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+pub async fn list(pool: &Pool<Postgres>) -> Result<Vec<User>, sqlx::Error> {
     let result = sqlx::query_as::<_, User>("SELECT * FROM users")
         .fetch_all(pool)
         .await?;
     Ok(result)
 }
 
-pub async fn fetch_one_by_id(
-    pool: &Pool<Postgres>,
-    id: &uuid::Uuid,
-) -> Result<Option<User>, sqlx::Error> {
+pub async fn get(pool: &Pool<Postgres>, id: &Uuid) -> Result<Option<User>, sqlx::Error> {
     let result = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
         .bind(id)
         .fetch_optional(pool)
@@ -19,22 +32,9 @@ pub async fn fetch_one_by_id(
     Ok(result)
 }
 
-pub async fn create(pool: &Pool<Postgres>, user: &User) -> Result<(), sqlx::Error> {
-    sqlx::query("INSERT INTO users (id, email, password, name, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)")
-        .bind(&user.id)
-        .bind(&user.email)
-        .bind(&user.password)
-        .bind(&user.name)
-        .bind(&user.created_at)
-        .bind(&user.updated_at)
-        .execute(pool)
-        .await?;
-    Ok(())
-}
-
 pub async fn update(
     pool: &Pool<Postgres>,
-    id: &uuid::Uuid,
+    id: &Uuid,
     user: &UserCreate,
 ) -> Result<PgQueryResult, sqlx::Error> {
     sqlx::query(
@@ -44,14 +44,14 @@ pub async fn update(
     .bind(&user.password)
     .bind(&user.name)
     .bind(chrono::Utc::now())
-    .bind(&id)
+    .bind(id)
     .execute(pool)
     .await
 }
 
-pub async fn delete(pool: &Pool<Postgres>, id: &uuid::Uuid) -> Result<PgQueryResult, sqlx::Error> {
+pub async fn delete(pool: &Pool<Postgres>, id: &Uuid) -> Result<PgQueryResult, sqlx::Error> {
     sqlx::query("DELETE FROM users WHERE id = $1")
-        .bind(&id)
+        .bind(id)
         .execute(pool)
         .await
 }
